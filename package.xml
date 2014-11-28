@@ -1,0 +1,27 @@
+ <package>
+  <name>ardrone_geofencing</name>
+  <version>0.0.1</version>
+  <description>
+    This package provides geofencing capability for the ARDrone V2.0
+  </description>
+  <maintainer email="evanokeeffe@gmail.com">Evan O'Keeffe</maintainer>
+  <license>BSD</license>
+
+  <url></url>
+  <author>Evan O'Keeffe</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>ardrone_autonomy</build_depend>
+  <build_depend>wii_nunchuck</build_depend>
+
+  <run_depend>message_runtime</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>ardrone_autonomy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>wii_nunchuck</run_depend>
+</package>
