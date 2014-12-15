@@ -63,7 +63,7 @@ class KalmanGPS : public Kalman
     public:
         KalmanGPS(){minAccuracy  = 1;}
         KalmanGPS(float q_metres_per_second);
-        virtual ~KalmanGPS();
+        virtual ~KalmanGPS(){};
 
         long get_TimeStamp();
         double get_latitude();
@@ -73,12 +73,14 @@ class KalmanGPS : public Kalman
             float accuracy, long TimeStamp_milliseconds);
         void Process(double lat_measurement, double lng_measurement,
             float accuracy, long TimeStamp_milliseconds);
+        double getLatitude();
+        double getLongitude();
     private:
-        static float minAccuracy;
-        static float q_metres_per_second;
-        static long timestamp_milliseconds;
-        static double latitude,longitude;
-        static float variance;
+        float minAccuracy;
+        float q_metres_per_second;
+        long timestamp_milliseconds;
+        double latitude,longitude;
+        float variance;
         // variance = P matrix Negative means object uninitialised.
         // NB: units irrelevant, as long as same units used throughout
 };

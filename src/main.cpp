@@ -44,6 +44,10 @@ coordinate predictFutureGPS(double distance,double lat,double lng,double bearing
         Manipulation of GPS distance formula rewritten
         to find the future gps point with a known origin
         and known bearing
+        @distance=distance from this point in meters
+        @lat=current latitude
+        @lng=current longitude
+        @bearing=current bearing
     */
     int radiusEarthMeters = 6371 * 1000;
     bearing = degrees(bearing);
@@ -67,10 +71,10 @@ bool isWithin(double lat,double lng)
     bool pointStatus = false;
     for(int i=0;i<sides;i++)
     {
-        double lati = degrees(points.at(i).x);
-        double latj = degrees(points.at(j).x);
-        double lngi = degrees(points.at(i).y);
-        double lngj = degrees(points.at(j).y);
+        double lati = points.at(i).x;
+        double latj = points.at(j).x;
+        double lngi = points.at(i).y;
+        double lngj = points.at(j).y;
 
         if(lngi<lng && lngj >= lng || lngj<lng && lngi >= lng)
         {
@@ -128,6 +132,10 @@ void read_coordinates(std::string filename)
             double x=.0,y=.0;
             while ( getline (gps_file,line) )
             {
+                if (strstr(line.c_str(), "#") != NULL)
+                {// comment line , skip these
+                    continue;
+                }
                 sscanf(line.c_str(),"%lf,%lf%*s",&x,&y);
                 ROS_INFO("Lat:%lf,Long:%lf",x,y);
                 points.push_back(coordinate(x,y));
@@ -184,10 +192,16 @@ void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
 
 void readDroneGPS(const ardrone_autonomy::navdata_gps& msg)
 {
-    latitude = msg.latitude;
-    longitude = msg.longitude;
+    gps.Process(msg.latitude,msg.longitude,2,msg.lastFrameTimestamp);
+    //latitude = msg.latitude;
+    //longitude = msg.longitude;
+
+    latitude = gps.getLatitude();
+    longitude = gps.getLongitude();
+
     elevation = msg.elevation;
     gps_speed = msg.speed;
+
 }
 
 void readDroneSensors(const ardrone_autonomy::Navdata& msg)
@@ -430,6 +444,8 @@ int main(int argc,char *argv[])
         ros::param::param("~perimeter",perimeter_filename,string("none"));
         //ros::param::param("~safe_distance",distance,double(5.0));
         read_coordinates(perimeter_filename);
+
+        //gps = new KalmanGPS();
 
         ROS_INFO("Starting GeoFencing Main Function");
 	    while(ros::ok())

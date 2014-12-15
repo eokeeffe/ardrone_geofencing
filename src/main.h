@@ -24,7 +24,7 @@
 /* Include PID controller */
 //#include <PID.h>
 /* Include Kalman Filters */
-//#include <KF.h>
+#include <KF.h>
 
 // Drone variables
 /* Drone State and battery */
@@ -98,5 +98,8 @@ void closestPoints(double lat,double lng);
 std::vector<coordinate> points;
 // Closest points
 std::vector<coordinate> distance_index;
+
+/* Kalman Filter Objects */
+KalmanGPS gps;
 
 #endif

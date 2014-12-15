@@ -49,3 +49,4 @@ print simpleWithin(coordinates,53.3077,-6.2330)
 lat,lng = futureGPSposition(76.92,53.3077,-6.2330,136.1714)
 print "future Lat,Lng:",lat,lng
 print simpleWithin(coordinates,lat,lng)
+print simpleWithin(coordinates,53.307280,-6.232676)

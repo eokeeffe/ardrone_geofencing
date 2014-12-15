@@ -171,7 +171,24 @@ double ExtendedKalman::normAngle(double rad)
 }
 /* End Extended Kalman Filter */
 
+
 /* KF GPS*/
+
+KalmanGPS::KalmanGPS(float q_metres_per_second)
+{
+    minAccuracy  = q_metres_per_second;
+}
+
+double KalmanGPS::getLatitude()
+{
+    return this->latitude;
+}
+
+double KalmanGPS::getLongitude()
+{
+    return this->longitude;
+}
+
 void KalmanGPS::SetState(double lat, double lng,
     float accuracy, long TimeStamp_milliseconds)
 {

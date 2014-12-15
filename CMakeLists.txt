@@ -22,5 +22,5 @@ add_library(kalman src/KF.cpp src/KF.h)
 
 # Main GeoFencing Application
 add_executable(geofencing src/main.cpp src/main.h)
-target_link_libraries(geofencing ${catkin_LIBRARIES})
+target_link_libraries(geofencing ${catkin_LIBRARIES} kalman)
 #
