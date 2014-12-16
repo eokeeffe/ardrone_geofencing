@@ -20,7 +20,10 @@ include_directories(include
 # Kalman filters
 add_library(kalman src/KF.cpp src/KF.h)
 
+# PID Controllers
+add_library(PID src/PID.cpp src/PID.h)
+
 # Main GeoFencing Application
 add_executable(geofencing src/main.cpp src/main.h)
-target_link_libraries(geofencing ${catkin_LIBRARIES} kalman)
+target_link_libraries(geofencing ${catkin_LIBRARIES} kalman PID)
 #

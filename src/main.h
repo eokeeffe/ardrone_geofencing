@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 /* Include PID controller */
-//#include <PID.h>
+#include <PID.h>
 /* Include Kalman Filters */
 #include <KF.h>
 
@@ -40,7 +40,9 @@ double current_bearing=.0,min_distance=5.0;
 float velx=.0,vely=.0,velz=.0;
 int reset_count = 0;
 /* Flight time recording */
-float takeoff_time,start_time,fly_time;
+float takeoff_time,start_time,fly_time,total;
+/* GPS kalman init */
+bool gps_initial = false;
 /* Drone Publishers */
 ros::Publisher pub_empty_land;
 ros::Publisher pub_twist;
@@ -101,5 +103,6 @@ std::vector<coordinate> distance_index;
 
 /* Kalman Filter Objects */
 KalmanGPS gps;
+PID yawPID(1.0,0,0.30);
 
 #endif

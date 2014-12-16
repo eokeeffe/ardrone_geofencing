@@ -38,23 +38,23 @@ void closestPoints(double lat,double lng)
     std::sort (distance_index.begin(), distance_index.end(), compare);
 }
 
-coordinate predictFutureGPS(double distance,double lat,double lng,double bearing)
+coordinate predictFutureGPS(double distance_meters,double lat,double lng,double bearing)
 {
     /*
-        Manipulation of GPS distance formula rewritten
+        Manipulation of GPS distance_meters formula rewritten
         to find the future gps point with a known origin
         and known bearing
-        @distance=distance from this point in meters
+        @distance_meters=distance_meters from this point in meters
         @lat=current latitude
         @lng=current longitude
         @bearing=current bearing
     */
     int radiusEarthMeters = 6371 * 1000;
     bearing = degrees(bearing);
-    double newlat = radians((distance/radiusEarthMeters)
+    double newlat = radians((distance_meters/radiusEarthMeters)
         * cos(bearing)) + lat;
     double newlng = radians(
-        (distance/(radiusEarthMeters*
+        (distance_meters/(radiusEarthMeters*
             sin(degrees(newlat)))) * sin(bearing)) + lng;
     // coordinates from origin with bearing
     return coordinate(newlat,newlng);
@@ -180,11 +180,11 @@ void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
     {
         current_bearing = 270 - atan2(magX,magY) * 180.0/M_PI;
     }
-    else if(abs(magY)==0 && magX<0)
+    else if(magY<0 && magX<0)
     {
         current_bearing = 180.0;
     }
-    else if(abs(magY)==0 && magX>0)
+    else if(magY<0 && magX>0)
     {
         current_bearing = 0.0;
     }
@@ -192,12 +192,17 @@ void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
 
 void readDroneGPS(const ardrone_autonomy::navdata_gps& msg)
 {
+    if(!gps_initial)
+    {
+        gps.SetState(msg.latitude,msg.longitude,2,msg.lastFrameTimestamp);
+        gps_initial = true;
+    }
     gps.Process(msg.latitude,msg.longitude,2,msg.lastFrameTimestamp);
-    //latitude = msg.latitude;
-    //longitude = msg.longitude;
+    latitude = msg.latitude;
+    longitude = msg.longitude;
 
-    latitude = gps.getLatitude();
-    longitude = gps.getLongitude();
+    //latitude = gps.getLatitude();
+    //longitude = gps.getLongitude();
 
     elevation = msg.elevation;
     gps_speed = msg.speed;
@@ -233,11 +238,8 @@ void changeState(bool c,bool z,bool c2,bool z2)
 	    {
 	        calibrateDrone();
 	    }
-	    //else
-	    //{
+        //reset the drone
 	    pub_empty_reset.publish(emp_msg);
-	    //}
-	    //reset the drone
     }
     else if(c && c2)
     {
@@ -250,7 +252,8 @@ void changeState(bool c,bool z,bool c2,bool z2)
             ros::spinOnce();
             rate.sleep();
         }//while takeoff
-        ROS_INFO("Flight Time Beginning @ %lf",(double)ros::Time::now().toSec());
+        total = (double)ros::Time::now().toSec();
+        ROS_INFO("Flight Time Beginning");
     }
     else if(z&&z2)
     {
@@ -262,7 +265,24 @@ void changeState(bool c,bool z,bool c2,bool z2)
             ros::spinOnce();
             rate.sleep();
         }//while takeoff
-        ROS_INFO("Flight Time Ending @ %lf",(double)ros::Time::now().toSec());
+        total = (double)ros::Time::now().toSec() - total;
+        ROS_INFO("Flight Time Ending after @ %lf",total);
+    }
+}
+
+double within(double x,double min,double max)
+{
+    if(x<min)
+    {
+        return min;
+    }
+    else if(x > max)
+    {
+        return max;
+    }
+    else
+    {
+        return x;
     }
 }
 
@@ -270,7 +290,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
 {
     // get the position of the GPS at a certain distance
     // with known gps location and bearing
-    coordinate future = predictFutureGPS(1,
+    coordinate future = predictFutureGPS(min_distance,
         latitude,longitude,current_bearing);
 
     ROS_INFO("Future:%lf,%lf",future.x,future.y);
@@ -282,37 +302,31 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
             points[index].x,points[index].y);
 
         ros::Rate rate(100);
-        while ( current_bearing-10 < heading && current_bearing+10 > heading  )
-        {//turn the craft to stay inside
-            if(current_bearing < heading)
-            {//turn left
-                twist_msg.linear.z = -speed;
-            }
-            else if(current_bearing > heading)
-            {//turn right
-                twist_msg.linear.z = speed;
-            }
-            twist_msg.linear.x = speed; // move forward as well as turn
+        while (!isWithin(latitude,longitude))
+        {//turn the craft to stay inside perimeter
+
+            ROS_INFO("Bearing @ %lf",current_bearing);
+            ROS_INFO("Heading @ %lf",heading);
+
+            double eyaw = heading - current_bearing;
+            double uyaw = yawPID.getCommand(eyaw);
+            double cyaw = within(uyaw,-1.0,1.0);
+
+            ROS_INFO("Turning %lf",cyaw);
+
+            twist_msg.angular.z = cyaw; // turn around
+            twist_msg.linear.x = speed/5; // move forward
+
             pub_twist.publish(twist_msg); //move the drone
             resetTwist();
             ros::spinOnce(); // let the callbacks activate
             rate.sleep();
-        }//while heading is incorrect
+        }//while correcting heading and future position
 
-        // for safety mode we just land the craft, no fuss
-        //ros::Rate rate(100);
-        //double start_time = (double)ros::Time::now().toSec();
-        //while ((double)ros::Time::now().toSec()< 5)
-        //{//takeoff
-        //     pub_empty_land.publish(emp_msg); //lands the drone
-        //    ROS_INFO("Boundary Exception, Auto Landing Now");
-        //    ros::spinOnce();
-        //    rate.sleep();
-        //}//while takeoff
-        ROS_INFO("Adjusted Flight Trajectory @ %lf",(double)ros::Time::now().toSec());
+        ROS_INFO("Adjusted Flight Trajectory @ %lf",total);
         ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
 
-        //return;
+        return;
     }
     ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
 
@@ -407,6 +421,7 @@ int main(int argc,char *argv[])
         takeoff_time=5.0;
         start_time=0.0;
         fly_time = 20.0;
+        total = 0.0;
 
         // main command message
         twist_msg.linear.x=0.0;
@@ -441,11 +456,10 @@ int main(int argc,char *argv[])
 
         bool calibrated = true;
 
-        ros::param::param("~perimeter",perimeter_filename,string("none"));
-        //ros::param::param("~safe_distance",distance,double(5.0));
+        ros::param::param<std::string>("~perimeter",perimeter_filename,"none");
+        ros::param::param<double>("~safe_distance",min_distance,5.0);
         read_coordinates(perimeter_filename);
 
-        //gps = new KalmanGPS();
 
         ROS_INFO("Starting GeoFencing Main Function");
 	    while(ros::ok())

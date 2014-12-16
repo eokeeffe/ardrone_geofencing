@@ -1,23 +1,31 @@
-#ifndef PID_H
-#define PID_H
+#ifndef _PID_H
+#define _PID_H
+
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
 
 /*
 *   Simple Proportional Integral Derivative Control
-*   Structure and code
+*   Structures and code
 */
 
-typedef struct
+/* Simple Yaw PID */
+class PID
 {
-    double windup_guard;
-    double proportional_gain;
-    double integral_gain;
-    double derivative_gain;
-    double prev_error;
-    double int_error;
-    double control;
-}PID;
+    public:
+        PID();
+        PID(double p,double i,double d);
+        ~PID(){};
+        void configure(double p,double i,double d);
+        void reset();
+        double getCommand(double input);
+    private:
+        double kp,ki,kd;
+        long last_time;
+        double last_error;
+        double error_sum;
+};
+/* End of Yaw PID */
 
-void pid_zeroize(PID* pid);
-void pid_update(PID* pid, double curr_error, double dt);
-
-#endif /* PID_H */
+#endif /* _PID_H */

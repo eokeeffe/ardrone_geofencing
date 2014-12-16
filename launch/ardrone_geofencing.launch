@@ -22,7 +22,7 @@
 
 	    <!-- Enables the standard /ardrone/navdata, imu and mag topics.
 	    If not specified, defaults to TRUE -->
-	    <param name="enable_legacy_navdata" value="false" />
+	    <param name="enable_legacy_navdata" value="true" />
 
 	    <!-- Enables the new-style, full information navdata packets. If not specified, defaults to FALSE -->
 	    <param name="enable_navdata_demo" value="true" />
@@ -67,7 +67,8 @@
 
 	<node name="geofencing" pkg="ardrone_geofencing" type="geofencing" output="screen" clear_params="true">
 	    <param name="perimeter" value="/home/evan/catkin_test/src/ardrone_geofencing/launch/rosemount_pitch.csv" />
-	</node>
+        <param name="safe_distance" value="40.0"/>
+    </node>
 
     <!-- Arduino Wii Nunchuck controllers -->
 

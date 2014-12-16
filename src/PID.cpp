@@ -1,38 +1,48 @@
 #include <PID.h>
 
-void pid_zeroize(PID* pid)
+PID::PID(double p,double i,double d)
 {
-    pid->prev_error = .0;
-    pid->int_error = 0;
+    kp = p;
+    ki = i;
+    kd = d;
 }
 
-void pid_update(PID* pid, double curr_error, double dt)
+void PID::configure(double p,double i,double d)
 {
-    double diff;
-    double p_term, i_term, d_term;
+    kp = p;
+    ki = i;
+    kd = d;
+}
 
-    //integration with windup guarding
-    pid->int_error += (curr_error * dt);
-    if(pid->int_error < -(pid->windup_guard))
+void PID::reset()
+{
+    last_error = FP_INFINITE;
+    last_time = 0.0;
+    error_sum = 0.0;
+}
+
+double PID::getCommand(double input)
+{
+    int timer = (int)time(NULL);
+    double dt = (timer - last_time) / 1000;
+
+    double de = 0.0;
+    if(last_time!=0.0)
     {
-        pid->int_error = -(pid->windup_guard);
+        // Computing error derivation
+        if(last_error < FP_INFINITE)
+        {
+            de = (input - last_error) / dt;
+        }
+
+        error_sum += input * dt;
     }
-    else if(pid->int_error > pid->windup_guard)
-    {
-        pid->int_error = pid->windup_guard;
-    }
 
-    //differentiation
-    diff = ((curr_error - pid->prev_error) / dt);
+    last_time = timer;
+    last_error = input;
 
-    //scaling
-    p_term = (pid->proportional_gain * curr_error);
-    i_term = (pid->integral_gain * pid->int_error);
-    d_term = (pid->derivative_gain * diff);
-
-    //summation of terms
-    pid->control = p_term + i_term + d_term;
-
-    // save current error as previous error for next iteration
-    pid->prev_error = curr_error;
+    double output = kp * input +
+                    ki * error_sum +
+                    kd * de;
+    return output;
 }
