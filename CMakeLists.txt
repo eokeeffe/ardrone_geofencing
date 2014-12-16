@@ -8,6 +8,11 @@ find_package(Eigen3 REQUIRED)
 ## Declare a catkin package
 catkin_package()
 
+ADD_DEFINITIONS(
+    -std=c++11 # Or -std=c++0x
+    # Other flags
+)
+
 include_directories(include
     ${catkin_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}

@@ -15,14 +15,19 @@ void PID::configure(double p,double i,double d)
 void PID::reset()
 {
     this->last_error = FP_INFINITE;
-    this->last_time = 0.0;
+    this->last_time = 0;
     this->error_sum = 0.0;
 }
 
 double PID::getCommand(double input)
 {
-    double timer = time(NULL);
-    double dt = (timer - this->last_time) / 1000;
+    /*
+        Had to use the new chrono for millisecond
+        time to prevent the division by zero problem
+        with the dt value
+    */
+    std::clock_t timer = std::clock();
+    double dt = 1000.0 * (timer-this->last_time) / CLOCKS_PER_SEC;
 
     double de = 0.0;
     if(this->last_time!=0.0)
@@ -39,8 +44,8 @@ double PID::getCommand(double input)
     this->last_time = timer;
     this->last_error = input;
 
-    double output = kp * input +
-                    ki * error_sum +
-                    kd * de;
+    double output = this->kp * input +
+                    this->ki * this->error_sum +
+                    this->kd * de;
     return output;
 }

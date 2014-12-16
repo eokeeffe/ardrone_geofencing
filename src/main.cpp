@@ -328,7 +328,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
             rate.sleep();
         }//while correcting heading and future position
 
-        ROS_INFO("Adjusted Flight Trajectory @ %lf",total);
+        ROS_INFO("Adjusted Flight Trajectory @ %lf",(double)ros::Time::now().toSec()-total);
         //ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
         return;
     }

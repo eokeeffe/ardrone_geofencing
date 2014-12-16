@@ -5,6 +5,9 @@
 #include <math.h>
 #include <time.h>
 
+#include <chrono>
+using namespace std::chrono;
+
 /*
 *   Simple Proportional Integral Derivative Control
 *   Structures and code
@@ -22,7 +25,7 @@ class PID
         double getCommand(double input);
     private:
         double kp,ki,kd;
-        double last_time;
+        std::clock_t last_time;
         double last_error;
         double error_sum;
 };

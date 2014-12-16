@@ -103,6 +103,6 @@ std::vector<coordinate> distance_index;
 
 /* Kalman Filter Objects */
 KalmanGPS gps;
-PID yawPID(1.0,0,0.30);
+PID yawPID(1.0,0.0,0.30);
 
 #endif
