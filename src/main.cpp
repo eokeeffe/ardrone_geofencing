@@ -201,6 +201,7 @@ void readDroneGPS(const ardrone_autonomy::navdata_gps& msg)
     latitude = msg.latitude;
     longitude = msg.longitude;
 
+    ROS_INFO("Fixed Lat,Lng:%lf,%lf",gps.getLatitude(),gps.getLongitude());
     //latitude = gps.getLatitude();
     //longitude = gps.getLongitude();
 
@@ -290,6 +291,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
 {
     // get the position of the GPS at a certain distance
     // with known gps location and bearing
+    ROS_INFO("safe distance:%lf",min_distance);
     coordinate future = predictFutureGPS(min_distance,
         latitude,longitude,current_bearing);
 
@@ -309,13 +311,16 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
             ROS_INFO("Heading @ %lf",heading);
 
             double eyaw = heading - current_bearing;
+            ROS_INFO("eyaw %lf",eyaw);
             double uyaw = yawPID.getCommand(eyaw);
+            ROS_INFO("uyaw %lf",uyaw);
             double cyaw = within(uyaw,-1.0,1.0);
 
-            ROS_INFO("Turning %lf",cyaw);
+            ROS_INFO("cyaw %lf",cyaw);
 
             twist_msg.angular.z = cyaw; // turn around
-            twist_msg.linear.x = speed/5; // move forward
+            // move forward every other iteration
+            twist_msg.linear.x = speed/4;
 
             pub_twist.publish(twist_msg); //move the drone
             resetTwist();

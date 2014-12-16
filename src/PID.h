@@ -10,7 +10,7 @@
 *   Structures and code
 */
 
-/* Simple Yaw PID */
+/* Single Value PID */
 class PID
 {
     public:
@@ -22,10 +22,10 @@ class PID
         double getCommand(double input);
     private:
         double kp,ki,kd;
-        long last_time;
+        double last_time;
         double last_error;
         double error_sum;
 };
-/* End of Yaw PID */
+/* End of Single Value PID */
 
 #endif /* _PID_H */
