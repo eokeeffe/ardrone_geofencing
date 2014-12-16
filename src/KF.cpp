@@ -36,29 +36,29 @@ ExtendedKalman::~ExtendedKalman()
 
 Vector3d ExtendedKalman::getstate()
 {
-    return kstate;
+    return this->kstate;
 }
 
 Matrix3d ExtendedKalman::confidence()
 {
-    return sigma;
+    return this->sigma;
 }
 
 void ExtendedKalman::reset()
 {
-    kstate(0) = 0.0;
-    kstate(1) = 0.0;
-    kstate(2) = 0.0;
-    sigma = Matrix3d::Identity();
-    q = Matrix3d::Zero();
-    q(0,0) = 0.0003;
-    q(1,1) = 0.0003;
-    q(2,2) = 0.0001;
-    r = Matrix3d::Zero();
-    r(0,0) = 0.3;
-    r(1,1) = 0.3;
-    r(2,2) = 0.3;
-    last_yaw = 0.0;
+    this->kstate(0) = 0.0;
+    this->kstate(1) = 0.0;
+    this->kstate(2) = 0.0;
+    this->sigma = Matrix3d::Identity();
+    this->q = Matrix3d::Zero();
+    this->q(0,0) = 0.0003;
+    this->q(1,1) = 0.0003;
+    this->q(2,2) = 0.0001;
+    this->r = Matrix3d::Zero();
+    this->r(0,0) = 0.3;
+    this->r(1,1) = 0.3;
+    this->r(2,2) = 0.3;
+    this->last_yaw = 0.0;
 }
 
 void ExtendedKalman::predict(double pitch,double roll,double yaw,double vx,double vy)
@@ -66,32 +66,32 @@ void ExtendedKalman::predict(double pitch,double roll,double yaw,double vx,doubl
     double dt = delta_t;
 
     //check yaw motion
-    if(last_yaw < 0.0)
+    if(this->last_yaw < 0.0)
     {
-        last_yaw = yaw;
+        this->last_yaw = yaw;
         return;
     }
 
-    last_yaw = yaw;
+    this->last_yaw = yaw;
     Vector3d kstate1;
 
-    kstate1(0) = kstate(0) + (vx*dt) * cos(kstate(2)) -
-                           (vy*dt) * sin(kstate(2));
-    kstate1(1) = kstate(1) + (vx*dt) * sin(kstate(2)) +
-                           (vy*dt) * cos(kstate(2));
-    kstate1(2) = kstate(2) + (yaw - last_yaw);
+    kstate1(0) = this->kstate(0) + (vx*dt) * cos(this->kstate(2)) -
+                           (vy*dt) * sin(this->kstate(2));
+    kstate1(1) = this->kstate(1) + (vx*dt) * sin(this->kstate(2)) +
+                           (vy*dt) * cos(this->kstate(2));
+    kstate1(2) = this->kstate(2) + (yaw - this->last_yaw);
 
     // Normalize the yaw value
-    kstate(2) = atan2(sin(kstate(2)),cos(kstate(2)));
+    this->kstate(2) = atan2(sin(this->kstate(2)),cos(this->kstate(2)));
 
     //compute the G term
     Matrix3d G = Matrix3d::Zero();
-    G << 1, 0, -1 * sin(kstate(2)) * (vx*dt) - cos(kstate(2)) * (vy*dt),
-         0, 1, cos(kstate(2)) * (vx*dt) - sin(kstate(2)) * (vy*dt),
+    G << 1, 0, -1 * sin(this->kstate(2)) * (vx*dt) - cos(this->kstate(2)) * (vy*dt),
+         0, 1, cos(this->kstate(2)) * (vx*dt) - sin(this->kstate(2)) * (vy*dt),
          0, 0, 1;
 
     // Compute the new sigma
-    sigma = G * sigma * (G.transpose() + q);
+    this->sigma = G * this->sigma * (G.transpose() + this->q);
 }
 
 void ExtendedKalman::correct(Vector3d measure,Vector3d pose)
@@ -106,11 +106,11 @@ void ExtendedKalman::correct(Vector3d measure,Vector3d pose)
         pose yaw: yaw rotation
     */
     Vector3d kstate1;
-    double psi = kstate(0);
+    double psi = this->kstate(0);
     Vector3d s;
-    s(0) = kstate(0);
-    s(1) = kstate(1);
-    s(2) = kstate(2);
+    s(0) = this->kstate(0);
+    s(1) = this->kstate(1);
+    s(2) = this->kstate(2);
 
     measure(2) = normAngle(measure(2));
     Vector3d m;
@@ -118,13 +118,13 @@ void ExtendedKalman::correct(Vector3d measure,Vector3d pose)
     m(1) = measure(1);
     m(2) = measure(2);
 
-    double z1 = cos(psi) * (pose(0) - kstate(0))
+    double z1 = cos(psi) * (pose(0) - this->kstate(0))
         + sin(psi)
-        * (pose(1) - kstate(1));
+        * (pose(1) - this->kstate(1));
     double z2 = -1 * sin(psi) *
-        (pose(0) - kstate(0))
+        (pose(0) - this->kstate(0))
         + cos(psi)
-        * (pose(1) - kstate(1));
+        * (pose(1) - this->kstate(1));
     double z3 = pose(2) - psi;
     Vector3d z;
     z(0) = z1;
@@ -142,8 +142,8 @@ void ExtendedKalman::correct(Vector3d measure,Vector3d pose)
     e(2) = e3;
 
     Matrix3d H;
-    H << -cos(psi), -sin(psi), sin(psi)*(kstate(0)-pose(0))-cos(psi)*(kstate(1)-pose(1)),
-         sin(psi), -cos(psi), cos(psi) * (kstate(0)-pose(0)) - sin(psi) * (kstate(1)-pose(1)),
+    H << -cos(psi), -sin(psi), sin(psi)*(this->kstate(0)-pose(0))-cos(psi)*(this->kstate(1)-pose(1)),
+         sin(psi), -cos(psi), cos(psi) * (this->kstate(0)-pose(0)) - sin(psi) * (this->kstate(1)-pose(1)),
          0.0, 0.0, -1;
 
     // Compute the Kalman Gain
@@ -157,8 +157,8 @@ void ExtendedKalman::correct(Vector3d measure,Vector3d pose)
     err(2) = e3;
 
     Vector3d c = K * err;
-    kstate(0) +=  c(1);
-    kstate(1) +=  c(2);
+    this->kstate(0) +=  c(1);
+    this->kstate(1) +=  c(2);
 
     sigma = (Matrix3d::Identity() - (K*H)) * sigma;
 }
@@ -176,7 +176,7 @@ double ExtendedKalman::normAngle(double rad)
 
 KalmanGPS::KalmanGPS(float q_metres_per_second)
 {
-    minAccuracy  = q_metres_per_second;
+    this->minAccuracy  = q_metres_per_second;
 }
 
 double KalmanGPS::getLatitude()
@@ -192,39 +192,39 @@ double KalmanGPS::getLongitude()
 void KalmanGPS::SetState(double lat, double lng,
     float accuracy, long TimeStamp_milliseconds)
 {
-    latitude = lat;
-    longitude = lng;
-    variance = accuracy * accuracy;
-    timestamp_milliseconds = TimeStamp_milliseconds;
+    this->latitude = lat;
+    this->longitude = lng;
+    this->variance = accuracy * accuracy;
+    this->timestamp_milliseconds = TimeStamp_milliseconds;
 }
 
 void KalmanGPS::Process(double lat_measurement, double lng_measurement,
     float accuracy, long TimeStamp_milliseconds)
 {
-    if(accuracy < minAccuracy)
+    if(accuracy < this->minAccuracy)
     {
-        accuracy = minAccuracy;
+        accuracy = this->minAccuracy;
     }
 
     if(variance < 0)
     {
-        timestamp_milliseconds = TimeStamp_milliseconds;
-        latitude = lat_measurement;
-        longitude = lng_measurement;
-        variance = accuracy * accuracy;
+        this->timestamp_milliseconds = TimeStamp_milliseconds;
+        this->latitude = lat_measurement;
+        this->longitude = lng_measurement;
+        this->variance = accuracy * accuracy;
     }
     else
     {
         //else apply Kalman Filter methodology
 
-        long timeinc_milliseconds = TimeStamp_milliseconds - timestamp_milliseconds;
+        long timeinc_milliseconds = TimeStamp_milliseconds - this->timestamp_milliseconds;
         if(timeinc_milliseconds > 0)
         {
             //time has moved on, so the uncertainty in
             //current position increases
-            variance += timeinc_milliseconds *
+            this->variance += timeinc_milliseconds *
             q_metres_per_second * q_metres_per_second / 1000;
-            timestamp_milliseconds = TimeStamp_milliseconds;
+            this->timestamp_milliseconds = TimeStamp_milliseconds;
 
             //TO DO:Use velocity info to get better estimate of
             //current position
@@ -232,12 +232,12 @@ void KalmanGPS::Process(double lat_measurement, double lng_measurement,
 
         // Kalman gain matrix K = covariance * inverse(covariance
         // + MeasurementVariance)
-        float K = variance / (variance + accuracy * accuracy);
+        float K = this->variance / (this->variance + accuracy * accuracy);
         // apply K
-        latitude  += K * (lat_measurement - latitude);
-        longitude += K * (lng_measurement - longitude);
+        this->latitude  += K * (lat_measurement - latitude);
+        this->longitude += K * (lng_measurement - longitude);
         // new Covariance matrix is (IdentityMatrix - K) * Covariance
-        variance = (1-K) * variance;
+        this->variance = (1-K) * variance;
     }
 }
 /* End KF GPS */

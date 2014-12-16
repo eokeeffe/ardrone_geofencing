@@ -291,11 +291,11 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
 {
     // get the position of the GPS at a certain distance
     // with known gps location and bearing
-    ROS_INFO("safe distance:%lf",min_distance);
+    //ROS_INFO("safe distance:%lf",min_distance);
     coordinate future = predictFutureGPS(min_distance,
         latitude,longitude,current_bearing);
 
-    ROS_INFO("Future:%lf,%lf",future.x,future.y);
+    //ROS_INFO("Future:%lf,%lf",future.x,future.y);
     if(!isWithin(future.x,future.y))
     {
         closestPoints(future.x,future.y);
@@ -307,11 +307,11 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
         while (!isWithin(latitude,longitude))
         {//turn the craft to stay inside perimeter
 
-            ROS_INFO("Bearing @ %lf",current_bearing);
-            ROS_INFO("Heading @ %lf",heading);
+            //ROS_INFO("Bearing @ %lf",current_bearing);
+            //ROS_INFO("Heading @ %lf",heading);
 
             double eyaw = heading - current_bearing;
-            ROS_INFO("eyaw %lf",eyaw);
+            //ROS_INFO("eyaw %lf",eyaw);
             double uyaw = yawPID.getCommand(eyaw);
             ROS_INFO("uyaw %lf",uyaw);
             double cyaw = within(uyaw,-1.0,1.0);
@@ -329,11 +329,10 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
         }//while correcting heading and future position
 
         ROS_INFO("Adjusted Flight Trajectory @ %lf",total);
-        ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
-
+        //ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
         return;
     }
-    ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
+    //ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
 
     if(x < 70)
     {
