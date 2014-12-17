@@ -8,6 +8,8 @@
 
 using namespace std;
 
+
+double compass =0.0;
 double degrees(double radians)
 {
     return radians * 180.0/M_PI;
@@ -23,19 +25,27 @@ bool compare(coordinate a,coordinate b)
     return a.y > b.y;
 }
 
-void closestPoints(double lat,double lng)
+coordinate centerPoint()
 {
-    distance_index.clear();
+    double x=0.0,y=0.0,z=0.0;
 
     for(int i=0;i<points.size();i++)
     {
-        distance_index.push_back(
-            coordinate(i ,pointDistance(lat,
-                lng,points.at(i).x,points.at(i).y))
-        );
+        double lat = radians(points.at(i).x);
+        double lon = radians(points.at(i).y);
+        x += cos(lat) * cos(lon);
+        y += cos(lat) * sin(lon);
+        z += sin(lat);
     }
-    //sort them so the furthest indexes are first
-    std::sort (distance_index.begin(), distance_index.end(), compare);
+    x /= points.size();
+    y /= points.size();
+    z /= points.size();
+
+    double Lon = atan2(y, x);
+    double hyp = sqrt(x * x + y * y);
+    double Lat = atan2(z, hyp);
+
+    return coordinate(degrees(Lat),degrees(Lon));
 }
 
 coordinate predictFutureGPS(double distance_meters,double lat,double lng,double bearing)
@@ -49,15 +59,109 @@ coordinate predictFutureGPS(double distance_meters,double lat,double lng,double 
         @lng=current longitude
         @bearing=current bearing
     */
-    int radiusEarthMeters = 6371 * 1000;
-    bearing = degrees(bearing);
-    double newlat = radians((distance_meters/radiusEarthMeters)
-        * cos(bearing)) + lat;
-    double newlng = radians(
-        (distance_meters/(radiusEarthMeters*
-            sin(degrees(newlat)))) * sin(bearing)) + lng;
-    // coordinates from origin with bearing
-    return coordinate(newlat,newlng);
+    double a=.0,b=.0,f=.0;
+    switch(datum)
+    {
+        case WGS84:
+        {
+            a=6378137;
+            b=6356752.314245;
+            f=1/298.257223563;
+            break;
+        }
+        case GRS80:
+        {
+            a=6378137;
+            b=63567523.14140;
+            f=1/298.257222101;
+            break;
+        }
+        case AIRY1830:
+        {
+            a=6377563.396;
+            b=6356256.909;
+            f=1/299.3249646;
+            break;
+        }
+        case INTERNATL1924:
+        {
+            a=6378388;
+            b=6356911.646;
+            f=1/297;
+            break;
+        }
+        case CLARKEMOD1880:
+        {
+            a=6378249.145;
+            b=6356514.86955;
+            f=1/293.465;
+            break;
+        }
+        case GRS67:
+        {
+            a=6378160;
+            b=6356774.719;
+            f=1/298.247167;
+            break;
+        }
+        default:
+        {
+            return coordinate(0.0,0.0);
+        }
+    };
+
+    double heading = radians(bearing);
+    double lat0 = radians(lat);
+    double lon0 = radians(lng);
+
+    double sina1 = sin(heading);
+    double cosa1 = cos(heading);
+
+    double tanU1 = (1-f) * tan(lat0);
+    double cosU1 = 1.0/sqrt(1+tanU1*tanU1);
+    double sinU1 = tanU1 * cosU1;
+
+    double sigma1 = atan2(tanU1,cosa1);
+    double sina = cosU1 * sina1;
+    double cosSqa = 1 - sina*sina;
+    double uSq = cosSqa * (a*a-b*b)/(b*b);
+
+    double A = 1+uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)));
+    double B = uSq/1024 * (256+uSq*(-128+uSq*(74-47*uSq)));
+
+    double cos2sigmaM,sinsigma,cossigma,delta_sigma;
+    double sigma=distance_meters/(b*A),sigma_transpose;
+    int iterations=0;
+    do
+    {
+        cos2sigmaM = cos(2*sigma1+sigma);
+        sinsigma = sin(sigma);
+        cossigma = cos(sigma);
+        delta_sigma = B*sinsigma*(cos2sigmaM+B/4*
+            (cossigma*(-1+2*cos2sigmaM*cos2sigmaM)-
+            B/6*cos2sigmaM*(-3+4*sinsigma*sinsigma)*
+            (-3+4*cos2sigmaM*cos2sigmaM)));
+        sigma_transpose = sigma;
+        sigma = distance_meters / (b*A) + delta_sigma;
+    }
+    while(fabs(sigma-sigma_transpose)>1e-12 && ++iterations<200);
+
+    if(iterations>=200)
+    {
+        return coordinate(NAN,NAN);
+    }
+
+    double x = sinU1*sinsigma - cosU1*cossigma*cosa1;
+    double lat2 = atan2(sinU1*cossigma+cosU1*sinsigma*cosa1,(1-f)*
+        sqrt(sina*sina+x*x));
+    double delta = atan2(sinsigma*sina1,cosU1*cossigma - sinU1*sinsigma*cosa1);
+    double C = f/16.0*cosSqa*(4+f*(4-3*cosSqa));
+    double L = delta - (1-C) * f * sina * (sigma + C*sina*(cos2sigmaM+C*cossigma*(-1+2*cos2sigmaM*cos2sigmaM)));
+    double lon2 = fmod((lon0+L+3*M_PI),(2*M_PI)) - M_PI;//normalise to -180...+180
+
+    //double a2 = atan2(sina,-x);
+    //a2 = fmod((a2+2*M_PI),(2*M_PI));//normalise to 0...360
+    return coordinate(degrees(lat2),degrees(lon2));
 }
 
 bool isWithin(double lat,double lng)
@@ -174,11 +278,11 @@ void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
     //solution included
     if(magY>0)
     {
-        current_bearing = 90.0 - atan2(magX,magY) * 180.0/M_PI;
+        current_bearing = 90.0 - (atan2(magX,magY) * 180.0/M_PI);
     }
     else if(magY<0)
     {
-        current_bearing = 270 - atan2(magX,magY) * 180.0/M_PI;
+        current_bearing = 270 - (atan2(magX,magY) * 180.0/M_PI);
     }
     else if(magY<0 && magX<0)
     {
@@ -219,6 +323,14 @@ void readDroneSensors(const ardrone_autonomy::Navdata& msg)
     yaw = msg.rotZ;
     pitch = msg.rotY;
     roll = msg.rotX;
+}
+
+void readDroneIMU(const sensor_msgs::Imu& msg)
+{
+    velx = msg.linear_acceleration.x;
+    vely = msg.linear_acceleration.y;
+    velz = msg.linear_acceleration.z;
+    compass = msg.orientation.z;
 }
 
 void droneNunchuck(const wii_nunchuck::nunchuck& msg)
@@ -292,17 +404,21 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
     // get the position of the GPS at a certain distance
     // with known gps location and bearing
     //ROS_INFO("safe distance:%lf",min_distance);
+    if(velx<0)
+    {
+        if(current_bearing>180){current_bearing-=180;}
+        if(current_bearing<180){current_bearing+=180;}
+    }
     coordinate future = predictFutureGPS(min_distance,
-        latitude,longitude,current_bearing);
+        latitude,longitude,degrees(current_bearing));
 
     //ROS_INFO("Future:%lf,%lf",future.x,future.y);
     if(!isWithin(future.x,future.y))
     {
-        closestPoints(future.x,future.y);
-        int index = distance_index[0].x;
         double heading = bearing(future.x,future.y,
-            points[index].x,points[index].y);
+        center.x,center.y);
 
+        yawPID.reset();
         ros::Rate rate(100);
         while (!isWithin(latitude,longitude))
         {//turn the craft to stay inside perimeter
@@ -310,13 +426,12 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
             //ROS_INFO("Bearing @ %lf",current_bearing);
             //ROS_INFO("Heading @ %lf",heading);
 
-            double eyaw = heading - current_bearing;
-            //ROS_INFO("eyaw %lf",eyaw);
+            double eyaw = (heading - current_bearing);
             double uyaw = yawPID.getCommand(eyaw);
-            ROS_INFO("uyaw %lf",uyaw);
             double cyaw = within(uyaw,-1.0,1.0);
 
             ROS_INFO("cyaw %lf",cyaw);
+            ROS_INFO("compass %lf",compass);
 
             twist_msg.angular.z = cyaw; // turn around
             // move forward every other iteration
@@ -454,7 +569,7 @@ int main(int argc,char *argv[])
         ros::Subscriber droneSensors = node.subscribe("/ardrone/navdata", 10, readDroneSensors);
         ros::Subscriber droneMagSensors = node.subscribe("/ardrone/mag",10,readDroneMagSensors);
         ros::Subscriber droneGPS = node.subscribe("/ardrone/navdata_gps",10,readDroneGPS);
-
+        ros::Subscriber droneIMU = node.subscribe("/ardrone/imu",10,readDroneIMU);
 	    /* Wii Nunchuck subscribers */
         buttonC = node.subscribe("/nunchuck", 4, droneNunchuck);
 
@@ -462,8 +577,9 @@ int main(int argc,char *argv[])
 
         ros::param::param<std::string>("~perimeter",perimeter_filename,"none");
         ros::param::param<double>("~safe_distance",min_distance,5.0);
+        ros::param::param<int>("~datum",datum,3);
         read_coordinates(perimeter_filename);
-
+        center = centerPoint();
 
         ROS_INFO("Starting GeoFencing Main Function");
 	    while(ros::ok())

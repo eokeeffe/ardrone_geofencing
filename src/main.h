@@ -10,6 +10,7 @@
 /* ARDrone Headers */
 #include <ardrone_autonomy/Navdata.h>
 #include <ardrone_autonomy/navdata_gps.h>
+#include <sensor_msgs/Imu.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
@@ -93,16 +94,30 @@ struct coordinate
 coordinate predictFutureGPS(double lat,double lng,double bearing);
 double degrees(double radians);
 double radians(double deg);
-//get the closest points to the GPS input position
-void closestPoints(double lat,double lng);
+//get the center point to the GPS points
+coordinate centerPoint();
+
+/* Get heading from Previous GPS Point */
 
 // GeoFence coordinates
 std::vector<coordinate> points;
 // Closest points
-std::vector<coordinate> distance_index;
+coordinate center;
 
 /* Kalman Filter Objects */
 KalmanGPS gps;
 PID yawPID(1.0,0.0,0.30);
+
+/* Ellipsoid Declarations */
+enum Datum
+{
+    WGS84,
+    GRS80,
+    AIRY1830,
+    INTERNATL1924,
+    CLARKEMOD1880,
+    GRS67
+};
+int datum;
 
 #endif

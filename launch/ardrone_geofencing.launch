@@ -66,8 +66,8 @@
 	<!-- ARDrone V2.0 geofencing node -->
 
 	<node name="geofencing" pkg="ardrone_geofencing" type="geofencing" output="screen" clear_params="true">
-	    <param name="perimeter" value="/home/evan/catkin_test/src/ardrone_geofencing/launch/rosemount_pitch.csv" />
-        <param name="safe_distance" value="40.0"/>
+	    <param name="perimeter" value="/home/evan/catkin_test/src/ardrone_geofencing/launch/rosemount_pitch2.csv" />
+        <param name="safe_distance" value="15.0"/>
     </node>
 
     <!-- Arduino Wii Nunchuck controllers -->
