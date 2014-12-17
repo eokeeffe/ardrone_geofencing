@@ -45,6 +45,7 @@ coordinate centerPoint()
     double hyp = sqrt(x * x + y * y);
     double Lat = atan2(z, hyp);
 
+    ROS_INFO("Center Point:%lf,%lf",degrees(Lat),degrees(Lon));
     return coordinate(degrees(Lat),degrees(Lon));
 }
 
@@ -427,7 +428,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
             //ROS_INFO("Heading @ %lf",heading);
 
             double eyaw = (heading - current_bearing);
-            double uyaw = yawPID.getCommand(eyaw);
+            double uyaw = yawPID.getCommand(radians(eyaw));
             double cyaw = within(uyaw,-1.0,1.0);
 
             ROS_INFO("cyaw %lf",cyaw);

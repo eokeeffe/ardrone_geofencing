@@ -82,13 +82,14 @@ double bearing(double lat1,double long1,double lat2,double long2);
 struct coordinate
 {
     double x,y;
+    coordinate(){}
     coordinate(double input_x,double input_y)
     {
         x = input_x;
         y = input_y;
     }
 
-};
+}center;
 
 //Predict the future GPS position from init point with bearing
 coordinate predictFutureGPS(double lat,double lng,double bearing);
@@ -101,8 +102,8 @@ coordinate centerPoint();
 
 // GeoFence coordinates
 std::vector<coordinate> points;
-// Closest points
-coordinate center;
+// Center point
+//struct coordinate center;
 
 /* Kalman Filter Objects */
 KalmanGPS gps;
