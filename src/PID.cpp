@@ -10,13 +10,18 @@ void PID::configure(double p,double i,double d)
     this->kp = p;
     this->ki = i;
     this->kd = d;
+    this->prev = .0;
+    this->i = .0;
+    this->d = .0;
+    this->last_time = 0;
 }
 
 void PID::reset()
 {
-    this->last_error = FP_INFINITE;
+    this->i = .0;
+    this->d = .0;
     this->last_time = 0;
-    this->error_sum = 0.0;
+    this->prev = .0;
 }
 
 double PID::getCommand(double input)
@@ -28,24 +33,53 @@ double PID::getCommand(double input)
     */
     std::clock_t timer = std::clock();
     double dt = 1000.0 * (timer-this->last_time) / CLOCKS_PER_SEC;
-
-    double de = 0.0;
-    if(this->last_time!=0.0)
-    {
-        // Compute error derivation
-        if(this->last_error < FP_INFINITE)
-        {
-            de = (input - this->last_error) / dt;
-        }
-
-        this->error_sum += input * dt;
-    }
-
+    this->i += dt*input;
+    this->d = (input-this->prev)/dt;
+    this->prev = input;
     this->last_time = timer;
-    this->last_error = input;
 
-    double output = this->kp * input +
-                    this->ki * this->error_sum +
-                    this->kd * de;
-    return output;
+    return (this->kp*input)+(this->ki*this->i)+(this->kd*this->d);
+}
+
+AdvController::AdvController(double p,double i,double d,
+double clamp_lo,double clamp_hi,double smooth)
+{
+    this->kp = p;
+    this->ki = i;
+    this->kd = d;
+    this->prev = .0;
+    this->last_time = 0;
+
+    this->i = .0;
+    this->d = .0;
+
+    this->unclamped = true;
+    this->clamp_lo = clamp_lo;
+    this->clamp_hi = clamp_hi;
+    this->alpha = smooth;
+}
+
+void AdvController::reset()
+{
+    this->prev = .0;
+    this->last_time = 0;
+
+    this->i = .0;
+    this->d = .0;
+}
+
+double AdvController::getCommand(double input)
+{
+    std::clock_t timer = std::clock();
+    double dt = 1000.0 * (timer-this->last_time) / CLOCKS_PER_SEC;
+
+    if( this->unclamped )
+    {
+        this->i += dt*input;
+    }
+    this->d = (this->alpha*(input-this->prev)/dt + (1.0-this->alpha)*this->d);
+    double u = this->kp * input + this->ki * this->i + this->kd * this->d;
+    this->unclamped = (this->clamp_lo<u<this->clamp_hi);
+    this->prev = input;
+    return u;
 }
