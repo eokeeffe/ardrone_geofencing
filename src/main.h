@@ -121,4 +121,7 @@ enum Datum
 };
 int datum;
 
+std::clock_t last_time=0;
+double kx=.0,ky=.0;
+
 #endif

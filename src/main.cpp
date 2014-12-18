@@ -328,10 +328,24 @@ void readDroneSensors(const ardrone_autonomy::Navdata& msg)
 
 void readDroneIMU(const sensor_msgs::Imu& msg)
 {
+    /*
+        Read the velocity of the craft and
+        create a position tracker
+    */
     velx = msg.linear_acceleration.x;
     vely = msg.linear_acceleration.y;
     velz = msg.linear_acceleration.z;
     compass = msg.orientation.z;
+
+    std::clock_t timer = std::clock();
+    double dt = 1000.0 * (timer-last_time) / CLOCKS_PER_SEC;
+
+    double dx = velx*dt;
+    double dy = vely*dt;
+
+    kx = kx+dx*cos(compass)-dy*sin(compass);
+    ky = ky+dx*sin(compass)+dy*cos(compass);
+    last_time = timer;
 }
 
 void droneNunchuck(const wii_nunchuck::nunchuck& msg)
