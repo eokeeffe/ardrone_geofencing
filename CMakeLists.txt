@@ -32,3 +32,9 @@ add_library(PID src/PID.cpp src/PID.h)
 add_executable(geofencing src/main.cpp src/main.h)
 target_link_libraries(geofencing ${catkin_LIBRARIES} kalman PID)
 #
+
+# Mark executables and/or libraries for installation
+install(TARGETS geofencing
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 double compass =0.0;
 double degrees(double radians)
 {
@@ -207,11 +206,12 @@ double bearing(double lat1,double long1,double lat2,double long2)
     /*
         Bearing or heading calcuation based on
         2 sets of GPS points
+        (θ+360) % 360
     */
     double y = sin(degrees(long2-long1)) * cos(lat2);
     double x = cos(degrees(lat1))*sin(degrees(lat2))-sin(degrees(lat1))*
     cos(degrees(lat2))*cos(lat2-lat1);
-    return degrees(atan2(y,x));
+    return fmod(degrees(atan2(y,x))+360,360);
 }
 
 inline bool file_exists(std::string& name)
@@ -271,6 +271,7 @@ void resetTwist()
 
 void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
 {
+    /*
     magX = msg.vector.x;
     magY = msg.vector.y;
     magZ = msg.vector.z;
@@ -293,6 +294,7 @@ void readDroneMagSensors(const geometry_msgs::Vector3Stamped& msg)
     {
         current_bearing = 0.0;
     }
+    */
 }
 
 void readDroneGPS(const ardrone_autonomy::navdata_gps& msg)
@@ -419,11 +421,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
     // get the position of the GPS at a certain distance
     // with known gps location and bearing
     //ROS_INFO("safe distance:%lf",min_distance);
-    if(velx<0)
-    {
-        if(current_bearing>180){current_bearing-=180;}
-        if(current_bearing<180){current_bearing+=180;}
-    }
+    current_bearing = yaw;
     coordinate future = predictFutureGPS(min_distance,
         latitude,longitude,degrees(current_bearing));
 
@@ -438,19 +436,31 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
         while (!isWithin(latitude,longitude))
         {//turn the craft to stay inside perimeter
 
-            //ROS_INFO("Bearing @ %lf",current_bearing);
-            //ROS_INFO("Heading @ %lf",heading);
+            double heading_error = heading - current_bearing;
 
-            double eyaw = (heading - current_bearing);
-            double uyaw = yawPID.getCommand(radians(eyaw));
-            double cyaw = within(uyaw,-1.0,1.0);
+            if(heading_error<-180){heading_error+=360;}
+            if(heading_error>180){heading_error-=360;}
 
-            ROS_INFO("cyaw %lf",cyaw);
-            ROS_INFO("compass %lf",compass);
-
-            twist_msg.angular.z = cyaw; // turn around
-            // move forward every other iteration
-            twist_msg.linear.x = speed/4;
+            if(fabs(heading_error) <= TURN_TOLERANCE)
+            {
+                //go straight
+                twist_msg.linear.x = 1;
+            }
+            else if(heading_error < 0)
+            {
+                //go left
+                twist_msg.angular.z = -1;
+            }
+            else if(heading_error > 0)
+            {
+                //go right
+                twist_msg.angular.z = 1;
+            }
+            else
+            {
+                //go straight
+                twist_msg.linear.x = 1;
+            }
 
             pub_twist.publish(twist_msg); //move the drone
             resetTwist();
@@ -459,7 +469,7 @@ void processJoystick(uint8_t x,uint8_t y,uint8_t x2,uint8_t y2)
         }//while correcting heading and future position
 
         ROS_INFO("Adjusted Flight Trajectory @ %lf",(double)ros::Time::now().toSec()-total);
-        //ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);
+        ROS_INFO("Adjusted Lat,Lng:%lf,%lf",latitude,longitude);
         return;
     }
     //ROS_INFO("Lat,Lng:%lf,%lf",latitude,longitude);

@@ -27,11 +27,24 @@
 /* Include Kalman Filters */
 #include <KF.h>
 
-// Drone variables
+/* latitude,longitude structure */
+struct coordinate
+{
+    double x,y;
+    coordinate(){}
+    coordinate(double input_x,double input_y)
+    {
+        x = input_x;
+        y = input_y;
+    }
+
+}center;
+/* used for storing coordinates */
+
+/* Drone variables */
 /* Drone State and battery */
 float batteryPercent;
 int state;
-
 /* Control Variables */
 float speed = 0.5;
 float altitude,current_altitude,magX,magY,magZ,yaw,pitch,roll;
@@ -78,37 +91,18 @@ bool isWithin(double lon,double lat);
 //get distance between GPS points
 double pointDistance(double lat1,double long1,double lat2,double long2);
 double bearing(double lat1,double long1,double lat2,double long2);
-
-struct coordinate
-{
-    double x,y;
-    coordinate(){}
-    coordinate(double input_x,double input_y)
-    {
-        x = input_x;
-        y = input_y;
-    }
-
-}center;
-
 //Predict the future GPS position from init point with bearing
 coordinate predictFutureGPS(double lat,double lng,double bearing);
 double degrees(double radians);
 double radians(double deg);
 //get the center point to the GPS points
 coordinate centerPoint();
-
-/* Get heading from Previous GPS Point */
-
 // GeoFence coordinates
 std::vector<coordinate> points;
-// Center point
-//struct coordinate center;
-
 /* Kalman Filter Objects */
 KalmanGPS gps;
+/* PID Controller */
 PID yawPID(1.0,0.0,0.30);
-
 /* Ellipsoid Declarations */
 enum Datum
 {
@@ -123,5 +117,6 @@ int datum;
 
 std::clock_t last_time=0;
 double kx=.0,ky=.0;
+#define TURN_TOLERANCE 5
 
 #endif
